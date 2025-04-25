@@ -22,6 +22,26 @@ async function createBooking(req, res) {
     }
 }
 
+async function makePayment(req, res) {
+    try {
+        console.log("Making payment with data:", req.body);
+        const booking = await BookingService.makePayment({
+            bookingId: req.body.bookingId,
+            userId: req.body.userId,
+            totalCost: req.body.totalCost,
+        });
+        SuccessResponse.data = booking;
+        SuccessResponse.message = "Payment successful";
+        return res.status(200).json(SuccessResponse);
+    } catch (error) {
+        ErrorResponse.message = "Error making payment controller yeh controller hai";
+        console.error("Error in makePayment controller:", error.message);
+        ErrorResponse.error = error.message;
+        return res.status(400).json(ErrorResponse);
+    }
+}
+
 module.exports = {
-    createBooking
+    createBooking,
+    makePayment
 };
