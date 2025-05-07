@@ -67,7 +67,7 @@ const currentDate = new Date();
 const timeDiff = currentDate.getTime() - dt.getTime(); // Difference in milliseconds
 console.log("Time difference in milliseconds:", timeDiff);
         if (timeDiff > 5 * 60 * 1000) {   
-        await bookingRepository.update(data.bookingId, { status: CANCELLED }, transaction);  
+        await cancelBooking(data.bookingId) 
         throw new AppError("Payment time limit exceeded", 400);
         }
         // Proceed with payment processing logic here
@@ -84,7 +84,45 @@ console.log("Time difference in milliseconds:", timeDiff);
 }
 
 
+async function cancelBooking(data) {
+    const transaction = await db.sequelize.transaction();
+    try {
+        const booking = await bookingRepository.get(data, transaction);
+        if (!booking) {
+            throw new Error("Booking not found");
+        }
+        if (booking.status === CANCELLED) {
+            throw new Error("Booking already cancelled");
+        }
+        console.log("dekho dekho yaha dekho",booking.noOfSeats)
+        await axios.patch(`${ServerConfig.FLIGHT_SERVICE}/api/v1/flights/${booking.flightId}/seats`, {
+            
+            seats: -booking.noOfSeats,
+        });
+        await bookingRepository.update(data.bookingId, { status: CANCELLED }, transaction);
+        await transaction.commit();
+    } catch (error) {
+        await transaction.rollback();
+        console.error("Error in cancelBooking service:", error.message);
+        throw new Error("Error in cancelBooking service: " + error.message);
+    }
+}
+
+async function cancelOldBookings() {
+  try {
+    console.log("Inside service")
+    const time = new Date( Date.now() - 1000 * 300 ); // time 5 mins ago
+    const response = await bookingRepository.cancelOldBookings(time);
+    
+    return response;
+} catch(error) {
+    console.log(error);
+}
+}
+
 module.exports = {
     createBooking,
-    makePayment
+    makePayment,
+    cancelBooking,
+    cancelOldBookings
 };

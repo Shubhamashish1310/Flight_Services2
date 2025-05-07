@@ -24,6 +24,12 @@ async function createBooking(req, res) {
 
 async function makePayment(req, res) {
     try {
+        const idempotencyKey = req.headers['x-idempotency-key'];
+        if (!idempotencyKey) {
+            ErrorResponse.message = "Idempotency key is required";
+            return res.status(400).json(ErrorResponse);
+        }
+        
         console.log("Making payment with data:", req.body);
         const booking = await BookingService.makePayment({
             bookingId: req.body.bookingId,
